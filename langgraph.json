@@ -2,6 +2,7 @@
   "node_version": "20",
   "graphs": {
     "scoping": "./src/agents/scoping.ts:agent",
+    "research": "./src/agents/research.ts:agent",
     "agent": "./src/agents/graph.ts:graph"
   },
   "env": ".env",

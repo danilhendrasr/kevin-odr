@@ -32,7 +32,7 @@ export const researcherOutputSchema = z
   })
   .describe("Researcher output schema");
 
-export const summarySchema = z
+export const webpageSummarySchema = z
   .object({
     summary: z.string().min(10).max(5000),
     key_excerpts: z.string(),

@@ -21,9 +21,11 @@
     "test:all": "yarn test && yarn test:int && yarn lint:langgraph"
   },
   "dependencies": {
+    "@langchain/community": "^0.3.55",
     "@langchain/core": "0.3.75",
     "@langchain/langgraph": "0.4.9",
-    "@langchain/openai": "^0.6.11"
+    "@langchain/openai": "^0.6.11",
+    "@langchain/tavily": "^0.1.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.1.0",
