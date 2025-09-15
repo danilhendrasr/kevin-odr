@@ -45,3 +45,24 @@ export const think = tool(
     }),
   },
 );
+
+export const researchComplete = tool(
+  () => {
+    return "Research process completed.";
+  },
+  {
+    name: "researchComplete",
+    description: "Indicate that the research process is complete.",
+    schema: z.object({}),
+  },
+);
+
+export const conductResearch = tool(async () => {}, {
+  name: "conductResearch",
+  description:
+    "Conduct research on a specific topic using Tavily search and summarize findings.",
+  schema: z.object({
+    topic: z.string().min(2).max(100),
+    max_results: z.number().min(1).max(10).default(5),
+  }),
+});

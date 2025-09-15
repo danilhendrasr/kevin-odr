@@ -35,3 +35,12 @@ export const compressionModel = new ChatOpenAI({
     baseURL: "https://openrouter.ai/api/v1",
   },
 });
+
+export const supervisorModel = new ChatOpenAI({
+  model: "gpt-4.1",
+  temperature: 0,
+  apiKey: process.env.OPENAI_API_KEY,
+  configuration: {
+    baseURL: "https://openrouter.ai/api/v1",
+  },
+});
