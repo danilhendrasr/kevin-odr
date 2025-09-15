@@ -5,6 +5,7 @@
     "research": "./src/agents/research.ts:agent",
     "research_mcp": "./src/agents/research_mcp.ts:agent",
     "research_multi_agent": "./src/agents/research_multi_agent.ts:agent",
+    "full": "./src/agents/full.ts:agent",
     "agent": "./src/agents/graph.ts:graph"
   },
   "env": ".env",

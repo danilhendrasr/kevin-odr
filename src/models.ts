@@ -44,3 +44,13 @@ export const supervisorModel = new ChatOpenAI({
     baseURL: "https://openrouter.ai/api/v1",
   },
 });
+
+export const writerModel = new ChatOpenAI({
+  model: "gpt-4.1",
+  temperature: 0,
+  apiKey: process.env.OPENAI_API_KEY,
+  maxTokens: 32000,
+  configuration: {
+    baseURL: "https://openrouter.ai/api/v1",
+  },
+});

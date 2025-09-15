@@ -39,7 +39,7 @@ const model = new ChatOpenAI({
   },
 });
 
-async function clarifyWithUser(state: typeof AgentState.State) {
+export async function clarifyWithUser(state: typeof AgentState.State) {
   const structuredOutputModel = model.withStructuredOutput(
     clarificationSchema,
     { name: "user_clarification" },
@@ -62,7 +62,7 @@ async function clarifyWithUser(state: typeof AgentState.State) {
   });
 }
 
-async function writeResearchBrief(state: typeof AgentState.State) {
+export async function writeResearchBrief(state: typeof AgentState.State) {
   const structuredOutputModel = model.withStructuredOutput(
     researchQuestionSchema,
   );
