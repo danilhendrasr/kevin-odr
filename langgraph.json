@@ -3,6 +3,7 @@
   "graphs": {
     "scoping": "./src/agents/scoping.ts:agent",
     "research": "./src/agents/research.ts:agent",
+    "research_mcp": "./src/agents/research_mcp.ts:agent",
     "agent": "./src/agents/graph.ts:graph"
   },
   "env": ".env",
