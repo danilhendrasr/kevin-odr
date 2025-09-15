@@ -1,7 +1,7 @@
 import { TavilySearch } from "@langchain/tavily";
 import { summarizationModel } from "./models.js";
 import { webpageSummarySchema } from "./schemas.js";
-import { HumanMessage } from "@langchain/core/messages";
+import { BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { prompt_summarizeWebpage } from "./prompts.js";
 
 export function todayStr() {
@@ -43,8 +43,8 @@ export async function tavilySearchMultiple(
 export async function deduplicateSearchResults(searchResults: any[]) {
   const dedupedResults: Record<string, any> = {};
 
-  searchResults.forEach((searchResult: any[]) => {
-    searchResult.forEach((result) => {
+  searchResults.forEach((response) => {
+    response["results"].forEach((result: any) => {
       const url = result.url as string;
       if (!dedupedResults[url]) {
         dedupedResults[url] = result;
@@ -110,4 +110,12 @@ export function formatSearchOutput(
   }
 
   return formattedOutput;
+}
+
+export function messageHasToolCalls(message: BaseMessage) {
+  return (
+    "tool_calls" in message &&
+    Array.isArray(message.tool_calls) &&
+    message.tool_calls?.length
+  );
 }

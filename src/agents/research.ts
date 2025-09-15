@@ -7,7 +7,6 @@ import {
 import {
   Annotation,
   END,
-  MessagesAnnotation,
   messagesStateReducer,
   START,
   StateGraph,
@@ -19,8 +18,14 @@ import {
   prompt_compressResearch,
   prompt_researchAgent,
 } from "../prompts.js";
-import { todayStr } from "../utils.js";
+import { messageHasToolCalls, todayStr } from "../utils.js";
 import { ToolCall } from "@langchain/core/messages/tool";
+
+declare global {
+  interface BaseMessage {
+    tool_calls?: ToolCall[];
+  }
+}
 
 const tools = [tavilySearch, think];
 const toolsByName = Object.fromEntries(tools.map((tool) => [tool.name, tool]));
@@ -54,57 +59,57 @@ async function llmCall(state: typeof ResearcherState.State) {
   };
 }
 
-async function toolNode(state: typeof MessagesAnnotation.State) {
-  const messages = state["messages"];
+async function toolNode(state: typeof ResearcherState.State) {
+  const messages = state["researcher_messages"];
   const lastMessage = messages[messages.length - 1];
 
-  if (
-    "tool_calls" in lastMessage &&
-    Array.isArray(lastMessage.tool_calls) &&
-    lastMessage.tool_calls?.length
-  ) {
-    const observations = [];
-    const toolCalls = lastMessage.tool_calls || [];
-    for (const toolCall of toolCalls) {
-      const tool = toolsByName[toolCall.toolName];
-      if (!tool) {
-        observations.push(`No tool found with name ${toolCall.toolName}`);
-        continue;
-      }
-
-      try {
-        const observation = await tool.invoke(toolCall["args"]);
-        observations.push(observation);
-      } catch (e) {
-        observations.push(`Error invoking tool ${toolCall.toolName}: ${e}`);
-      }
-    }
-
-    const toolOutputs = [
-      observations.map((obs, i) => {
-        const toolCall = toolCalls[i] as ToolCall;
-        return new ToolMessage({
-          content: obs,
-          name: toolCall["name"] as string,
-          id: toolCall["id"] as string,
-        });
-      }),
-    ];
-
+  if (!messageHasToolCalls(lastMessage)) {
     return {
-      researcher_messages: toolOutputs,
+      researcher_messages: [],
     };
   }
 
-  return {};
+  const observations = [];
+  const toolCalls =
+    "tool_calls" in lastMessage ? (lastMessage.tool_calls as ToolCall[]) : [];
+  for (const toolCall of toolCalls) {
+    const tool = toolsByName[toolCall.name];
+    if (!tool) {
+      observations.push(`No tool found with name ${toolCall.name}`);
+      continue;
+    }
+
+    try {
+      // Ensure toolCall.args matches the expected input for the tool
+      const observation = await (tool as any).invoke(toolCall.args);
+      observations.push(observation);
+    } catch (e) {
+      observations.push(`Error invoking tool ${toolCall.name}: ${e}`);
+    }
+  }
+
+  const toolOutputs = observations.map((obs, i) => {
+    const toolCall = toolCalls[i] as ToolCall;
+    return new ToolMessage({
+      content: obs,
+      name: toolCall["name"],
+      tool_call_id: toolCall["id"] || "<unknown_id>",
+    });
+  });
+
+  return {
+    researcher_messages: toolOutputs,
+  };
 }
 
-async function writeResearchBrief(state: typeof ResearcherState.State) {
+async function compressResearch(state: typeof ResearcherState.State) {
   const systemMessage = prompt_compressResearch(todayStr());
   const messages = [
     new SystemMessage(systemMessage),
     ...state["researcher_messages"],
-    new HumanMessage({ content: humanPrompt_compressResearch("testing") }),
+    new HumanMessage({
+      content: humanPrompt_compressResearch(state.research_topic),
+    }),
   ];
 
   const response = await compressionModel.invoke(messages);
@@ -121,7 +126,7 @@ async function writeResearchBrief(state: typeof ResearcherState.State) {
 export const agent = new StateGraph(ResearcherState)
   .addNode("llm_call", llmCall)
   .addNode("tool_node", toolNode)
-  .addNode("compress_research", writeResearchBrief)
+  .addNode("compress_research", compressResearch)
   .addEdge(START, "llm_call")
   .addConditionalEdges(
     "llm_call",
@@ -129,7 +134,10 @@ export const agent = new StateGraph(ResearcherState)
       const messages = state["researcher_messages"];
       const lastMessage = messages[messages.length - 1];
 
-      if ("tool_calls" in lastMessage) return "tool_node";
+      if (messageHasToolCalls(lastMessage)) {
+        return "tool_node";
+      }
+
       return "compress_research";
     },
     { tool_node: "tool_node", compress_research: "compress_research" },
