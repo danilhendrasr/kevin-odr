@@ -53,16 +53,20 @@ export const researchComplete = tool(
   {
     name: "researchComplete",
     description: "Indicate that the research process is complete.",
-    schema: z.object({}),
   },
 );
 
-export const conductResearch = tool(async () => {}, {
-  name: "conductResearch",
-  description:
-    "Conduct research on a specific topic using Tavily search and summarize findings.",
-  schema: z.object({
-    topic: z.string().min(2).max(100),
-    max_results: z.number().min(1).max(10).default(5),
-  }),
-});
+export const conductResearch = tool(
+  async () => {
+    return "Research conducted and summarized.";
+  },
+  {
+    name: "conductResearch",
+    description:
+      "Conduct research on a specific topic using Tavily search and summarize findings.",
+    schema: z.object({
+      research_brief: z.string().min(10),
+      research_topic: z.string().min(2),
+    }),
+  },
+);

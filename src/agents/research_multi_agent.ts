@@ -8,6 +8,7 @@ import {
   Annotation,
   Command,
   END,
+  messagesStateReducer,
   START,
   StateGraph,
 } from "@langchain/langgraph";
@@ -26,7 +27,10 @@ const modelWithTools = supervisorModel.bindTools(tools);
 
 export const SupervisorState = Annotation.Root({
   research_brief: Annotation<string>(),
-  supervisor_messages: Annotation<BaseMessage[]>(),
+  supervisor_messages: Annotation<BaseMessage[]>({
+    reducer: messagesStateReducer,
+    default: () => [],
+  }),
   notes: Annotation<string[]>(),
   research_iterations: Annotation<number>(),
   raw_notes: Annotation<string[]>(),
@@ -48,7 +52,7 @@ async function supervisor(state: typeof SupervisorState.State) {
   return new Command({
     goto: "supervisor_tools",
     update: {
-      supervisor_messages: [response],
+      supervisor_messages: supervisorMessages.concat([response]),
       research_iterations: (state["research_iterations"] || 0) + 1,
     },
   });
@@ -101,7 +105,7 @@ async function supervisorTools(state: typeof SupervisorState.State) {
         conductResearchCalls.map(async (toolCall) => {
           return researchAgent.invoke({
             researcher_messages: [
-              new HumanMessage(toolCall["args"]["research_topic"]),
+              new HumanMessage(toolCall["args"]["research_brief"]),
             ],
             research_topic: toolCall["args"]["research_topic"],
           });
@@ -120,30 +124,30 @@ async function supervisorTools(state: typeof SupervisorState.State) {
       toolMessages.push(...researchToolMessages);
 
       allRawNotes.push(
-        ...researchResults.map((r) => r["raw_notes"] || "").join("\n"),
+        researchResults.map((r) => r["raw_notes"] || "").join("\n"),
       );
     }
   }
 
-  if (!shouldEnd) {
+  if (shouldEnd) {
     return new Command({
       goto: nextStep,
       update: {
         notes: supervisorMessages
           .filter((msg) => msg.getType() === "tool")
           .map((msg) => msg.content),
-        research_brief: state["research_brief"] || "",
-      },
-    });
-  } else {
-    return new Command({
-      goto: nextStep,
-      update: {
-        supervisor_messages: toolMessages,
-        raw_notes: allRawNotes,
+        research_brief: state["research_brief"],
       },
     });
   }
+
+  return new Command({
+    goto: nextStep,
+    update: {
+      supervisor_messages: supervisorMessages.concat(toolMessages),
+      raw_notes: allRawNotes,
+    },
+  });
 }
 
 export const agent = new StateGraph(SupervisorState)
